@@ -217,3 +217,118 @@ A quick reference guide for the DBMS Laboratory programs.
 3.  **Strings:** Always single quotes `'Text'`.
 
 **Good luck! You have practiced every single one of these. Trust your syntax.**
+
+---
+
+## **4. Employee Database (MongoDB)**
+**Schema:**
+*   `employees` collection
+*   Structure: `{ eid, ename, dept, design, salary, yoj, address: { dno, street, locality, city } }`
+
+### **Q1: Salary Range & Designation**
+*   **Goal:** Find employees with salary between 50k and 75k, or specific designation.
+*   **Query:**
+    ```javascript
+    // Salary Range
+    db.employees.find( { salary: { $gt: 50000, $lt: 75000 } } )
+    
+    // Exact Designation
+    db.employees.find( { design: "developer" } )
+    ```
+
+### **Q2: Updates (Set, Unset, Push)**
+*   **Goal:** Modify employee details (Add age, Remove YOJ, Add Contacts).
+*   **Query:**
+    ```javascript
+    // 1. Update Age ($set)
+    db.employees.updateOne(
+        { ename: "Rahul" },
+        { $set: { age: 28 } }
+    )
+
+    // 2. Remove Field ($unset)
+    db.employees.updateOne(
+        { ename: "Rahul" },
+        { $unset: { yoj: "" } }
+    )
+
+    // 3. Add Nested Array ($push + $each)
+    db.employees.updateOne(
+        { ename: "Rahul" },
+        { $push: { "contacts.phone": { $each: [5156535413, 4548465444] } } }
+    )
+    ```
+
+---
+
+## **5. Restaurant Database (MongoDB)**
+**Schema:**
+*   `rest` collection
+*   Structure: `{ Name, address: { building, street, area, pincode }, id, cuisine, landmarks: [], online_delivery, famous_for }`
+
+### **Q1: Find by Location & Cuisine (with Regex)**
+*   **Goal:** Find Italian restaurants in Bangalore.
+*   **Logic:** Match `cuisine` exactly, use Regex for `address.area`. Project specific columns.
+*   **Query:**
+    ```javascript
+    db.rest.find(
+        {
+            "address.area": /Bangalore/,
+            cuisine: "Italian"
+        },
+        { Name: 1, address: 1, _id: 0 }
+    )
+    ```
+
+### **Q2: Find by Location (Projection)**
+*   **Goal:** Find all restaurants in Bangalore and show famous dishes.
+*   **Query:**
+    ```javascript
+    db.rest.find(
+        { "address.area": /Bangalore/ },
+        { Name: 1, address: 1, famous_for: 1, _id: 0 }
+    )
+    ```
+
+---
+
+## **6. MongoDB Cheat Sheet (The "Exam Saver")**
+
+### **1. The Basics**
+*   **Switch DB:** `use myDB`
+*   **Insert One:** `db.col.insertOne({ name: "A" })`
+*   **Insert Many:** `db.col.insertMany([ { ... }, { ... } ])`
+*   **Nested Object:** `{ address: { city: "Bangalore" } }`
+
+### **2. The "Read" Logic (find)**
+*   **Syntax:** `db.col.find( {FILTER}, {PROJECTION} )`
+
+| Scenario | Syntax |
+| :--- | :--- |
+| **Exact Match** | `{ dept: "Sales" }` |
+| **Range** | `{ salary: { $gt: 50000, $lt: 75000 } }` (No comma between ops!) |
+| **OR Logic** | `{ $or: [ {dept:"IT"}, {salary: 100} ] }` |
+| **Contains (Regex)** | `{ "address.city": /Bangalore/ }` |
+| **Nested Fields** | `{ "address.city": "Delhi" }` (Quotes required!) |
+
+**Projections:** `{ name: 1, _id: 0 }` (Don't mix 0s and 1s except _id).
+
+### **3. The "Update" Logic (updateOne)**
+*   **Edit/Add:** `{ $set: { age: 25 } }`
+*   **Delete Field:** `{ $unset: { yoj: "" } }`
+*   **Add to Array:** `{ $push: { items: "Mouse" } }`
+*   **Add MANY:** `{ $push: { items: { $each: ["A", "B"] } } }`
+
+### **4. Aggregation**
+**The Golden Pattern:**
+```javascript
+db.col.aggregate([
+    { $match: { dept: "Sales" } }, // Filter
+    { $group: { _id: "$city", total: { $sum: 1 } } } // Group
+])
+```
+
+### **5. Top Traps 🚨**
+1.  **Comma Trap:** `{$gt:50, $lt:80}` is ONE object. Don't split braces.
+2.  **Array Trap:** Use `$each` with `$push` for multiple items, or you get nested arrays `[[a,b]]`.
+3.  **Strictness:** `"Bangalore"` != `"Indiranagar, Bangalore"`. Use `/Bangalore/`.
